@@ -1,0 +1,1866 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#9A2B2E">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Pio XII Dash">
+    <title>Dashboard Executivo • Hospital Pio XII</title>
+
+    <!-- Tipografia Moderna (Inter) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Chart.js + jsPDF + AutoTable -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
+
+    <style>
+        :root {
+            --bordo: #9A2B2E;
+            --bordo-escuro: #6E1B1E;
+            --bordo-claro: #FDF4F4;
+            --bordo-ring: rgba(154, 43, 46, 0.14);
+
+            --bg-page: #F4F5F7;
+            --bg-card: #FFFFFF;
+            --border-subtle: #E5E7EB;
+            --border-strong: #D1D5DB;
+
+            --text-main: #111827;
+            --text-secondary: #4B5563;
+            --text-muted: #6B7280;
+
+            --verde: #0F766E;
+            --verde-forte: #15803D;
+            --verde-bg: #DCFCE7;
+            --vermelho: #B91C1C;
+            --vermelho-bg: #FEE2E2;
+            --amarelo: #B45309;
+            --amarelo-bg: #FEF3C7;
+            --azul: #1D4ED8;
+            --azul-bg: #DBEAFE;
+
+            --shadow-xs: 0 1px 2px rgba(16, 24, 40, 0.04);
+            --shadow-sm: 0 2px 8px rgba(16, 24, 40, 0.06);
+            --shadow-md: 0 8px 24px rgba(16, 24, 40, 0.08);
+            --radius-lg: 14px;
+            --radius-md: 10px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: var(--bg-page);
+            color: var(--text-main);
+            min-height: 100vh;
+            padding-bottom: calc(82px + env(safe-area-inset-bottom));
+            font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+        }
+
+        @media (min-width: 641px) {
+            body {
+                padding-bottom: 40px;
+            }
+        }
+
+        .num {
+            font-variant-numeric: tabular-nums;
+        }
+
+        /* =========================================================
+           CABEÇALHO EXECUTIVO
+           ========================================================= */
+        .app-header {
+            background: linear-gradient(135deg, var(--bordo) 0%, var(--bordo-escuro) 100%);
+            color: #FFFFFF;
+            padding: calc(14px + env(safe-area-inset-top)) 16px 16px 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+        }
+
+        .header-inner {
+            max-width: 1120px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .brand-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            min-width: 0;
+        }
+
+        .brand-logo-box {
+            background: #FFFFFF;
+            padding: 6px 10px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+            flex-shrink: 0;
+        }
+
+        .brand-logo-box img {
+            height: 28px;
+            width: auto;
+            display: block;
+        }
+
+        .header-titles {
+            min-width: 0;
+        }
+
+        .header-titles h1 {
+            font-size: 1.05rem;
+            font-weight: 700;
+            letter-spacing: -0.01em;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.74rem;
+            color: rgba(255, 255, 255, 0.9);
+            margin-top: 3px;
+        }
+
+        .status-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: #4ADE80;
+            box-shadow: 0 0 0 3px rgba(74, 222, 128, 0.25);
+            flex-shrink: 0;
+        }
+
+        .status-dot.syncing {
+            background: #FACC15;
+            animation: pulseDot 1s infinite alternate;
+        }
+
+        @keyframes pulseDot {
+            from { opacity: 0.4; transform: scale(0.85); }
+            to { opacity: 1; transform: scale(1.15); }
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-shrink: 0;
+        }
+
+        .btn-action {
+            background: rgba(255, 255, 255, 0.14);
+            border: 1px solid rgba(255, 255, 255, 0.28);
+            color: #FFFFFF;
+            padding: 8px 12px;
+            border-radius: 9px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.18s ease;
+        }
+
+        .btn-action:hover:not(:disabled) {
+            background: rgba(255, 255, 255, 0.24);
+        }
+
+        .btn-action:active:not(:disabled) {
+            transform: scale(0.96);
+        }
+
+        .btn-action:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-pdf {
+            background: #FFFFFF;
+            color: var(--bordo);
+            border-color: #FFFFFF;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.14);
+        }
+
+        .btn-pdf:hover:not(:disabled) {
+            background: #FDF4F4;
+        }
+
+        .btn-action svg {
+            width: 15px;
+            height: 15px;
+            stroke-width: 2.2;
+            flex-shrink: 0;
+        }
+
+        @media (max-width: 440px) {
+            .btn-action span.hide-xs {
+                display: none;
+            }
+            .btn-action {
+                padding: 9px 11px;
+            }
+        }
+
+        /* =========================================================
+           NAVEGAÇÃO RESPONSIVA: TOP TABS (DESKTOP) + BOTTOM BAR (MOBILE)
+           ========================================================= */
+        .tabs-wrapper {
+            background: rgba(255, 255, 255, 0.94);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border-subtle);
+            position: sticky;
+            top: 0;
+            z-index: 60;
+        }
+
+        .tabs-nav {
+            max-width: 1120px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 6px;
+            padding: 8px 16px;
+        }
+
+        .tab-btn {
+            background: transparent;
+            border: 1px solid transparent;
+            border-radius: 9px;
+            padding: 9px 12px;
+            font-size: 0.84rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.18s ease;
+        }
+
+        .tab-btn svg {
+            width: 17px;
+            height: 17px;
+            stroke-width: 2;
+            flex-shrink: 0;
+        }
+
+        .tab-btn:hover {
+            background: #F3F4F6;
+            color: var(--text-main);
+        }
+
+        .tab-btn.active {
+            background: var(--bordo-claro);
+            color: var(--bordo);
+            border-color: rgba(154, 43, 46, 0.22);
+        }
+
+        /* Modo App Mobile: Barra Inferior Fixa */
+        @media (max-width: 640px) {
+            .tabs-wrapper {
+                position: fixed;
+                top: auto;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                border-bottom: none;
+                border-top: 1px solid var(--border-subtle);
+                box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.06);
+                padding-bottom: env(safe-area-inset-bottom);
+            }
+
+            .tabs-nav {
+                padding: 6px 8px;
+                gap: 4px;
+            }
+
+            .tab-btn {
+                flex-direction: column;
+                gap: 3px;
+                padding: 6px 4px;
+                font-size: 0.68rem;
+                border-radius: 8px;
+            }
+
+            .tab-btn svg {
+                width: 19px;
+                height: 19px;
+            }
+        }
+
+        /* =========================================================
+           CONTAINER E ESTRUTURA DE CONTEÚDO
+           ========================================================= */
+        .main-container {
+            max-width: 1120px;
+            margin: 0 auto;
+            padding: 18px 16px;
+        }
+
+        @media (max-width: 640px) {
+            .main-container {
+                padding: 14px 12px;
+            }
+        }
+
+        .tab-panel {
+            display: none;
+        }
+
+        .tab-panel.active {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            animation: panelReveal 0.24s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes panelReveal {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* =========================================================
+           CARDS DE KPI EXECUTIVOS
+           ========================================================= */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+
+        @media (min-width: 900px) {
+            .kpi-grid {
+                grid-template-columns: 1.4fr 1fr 1fr 1.2fr;
+            }
+        }
+
+        .kpi-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-lg);
+            padding: 16px;
+            box-shadow: var(--shadow-xs);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            transition: transform 0.18s ease, box-shadow 0.18s ease;
+        }
+
+        @media (min-width: 900px) {
+            .kpi-card:hover {
+                transform: translateY(-2px);
+                box-shadow: var(--shadow-sm);
+            }
+        }
+
+        .kpi-card.hero-kpi {
+            grid-column: span 2;
+            border-left: 4px solid var(--bordo);
+        }
+
+        @media (min-width: 900px) {
+            .kpi-card.hero-kpi {
+                grid-column: span 1;
+            }
+        }
+
+        .kpi-card.alert-kpi {
+            grid-column: span 2;
+        }
+
+        @media (min-width: 900px) {
+            .kpi-card.alert-kpi {
+                grid-column: span 1;
+            }
+        }
+
+        .kpi-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .kpi-label {
+            font-size: 0.74rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
+        .kpi-icon-box {
+            width: 30px;
+            height: 30px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .kpi-icon-box svg {
+            width: 16px;
+            height: 16px;
+            stroke-width: 2.2;
+        }
+
+        .kpi-value {
+            font-size: 1.75rem;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            color: var(--text-main);
+            margin-top: 8px;
+            line-height: 1.1;
+        }
+
+        .kpi-footer {
+            font-size: 0.76rem;
+            color: var(--text-muted);
+            margin-top: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 6px;
+        }
+
+        .meta-bar-bg {
+            width: 100%;
+            height: 7px;
+            background: #E5E7EB;
+            border-radius: 99px;
+            margin-top: 10px;
+            overflow: hidden;
+        }
+
+        .meta-bar-fill {
+            height: 100%;
+            border-radius: 99px;
+            background: var(--verde-forte);
+            transition: width 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+
+        /* =========================================================
+           CARDS DE GRÁFICOS E SEÇÕES
+           ========================================================= */
+        .charts-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 16px;
+        }
+
+        @media (min-width: 820px) {
+            .charts-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        .card-box {
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-lg);
+            padding: 18px;
+            box-shadow: var(--shadow-xs);
+        }
+
+        @media (max-width: 640px) {
+            .card-box {
+                padding: 14px;
+            }
+        }
+
+        .card-box.span-all {
+            grid-column: 1 / -1;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 14px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #F3F4F6;
+        }
+
+        .card-title {
+            font-size: 0.96rem;
+            font-weight: 700;
+            color: var(--text-main);
+            letter-spacing: -0.01em;
+        }
+
+        .card-subtitle {
+            font-size: 0.78rem;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+
+        .chart-container {
+            position: relative;
+            width: 100%;
+            height: 250px;
+        }
+
+        .chart-container.tall {
+            height: 340px;
+        }
+
+        /* Centro do Gráfico de Rosca */
+        .doughnut-wrapper {
+            position: relative;
+            width: 100%;
+            height: 250px;
+        }
+
+        .doughnut-center {
+            position: absolute;
+            top: 43%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            pointer-events: none;
+        }
+
+        .doughnut-center strong {
+            display: block;
+            font-size: 1.35rem;
+            font-weight: 800;
+            color: var(--text-main);
+            line-height: 1.1;
+        }
+
+        .doughnut-center span {
+            font-size: 0.68rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+        }
+
+        /* =========================================================
+           BADGES, FILTROS E BUSCA
+           ========================================================= */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 3px 9px;
+            border-radius: 99px;
+            font-size: 0.73rem;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        .badge-green { background: var(--verde-bg); color: var(--verde-forte); }
+        .badge-red { background: var(--vermelho-bg); color: var(--vermelho); }
+        .badge-yellow { background: var(--amarelo-bg); color: var(--amarelo); }
+        .badge-blue { background: var(--azul-bg); color: var(--azul); }
+        .badge-gray { background: #F3F4F6; color: #4B5563; }
+
+        .controls-bar {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 14px;
+        }
+
+        .pill-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .pill-filter {
+            background: #F3F4F6;
+            border: 1px solid var(--border-subtle);
+            color: var(--text-secondary);
+            padding: 7px 13px;
+            border-radius: 99px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.16s ease;
+        }
+
+        .pill-filter:hover {
+            background: #E5E7EB;
+        }
+
+        .pill-filter.active {
+            background: var(--bordo);
+            border-color: var(--bordo);
+            color: #FFFFFF;
+            box-shadow: 0 2px 6px rgba(154, 43, 46, 0.25);
+        }
+
+        .search-box {
+            position: relative;
+            flex: 1;
+            min-width: 210px;
+            max-width: 340px;
+        }
+
+        @media (max-width: 640px) {
+            .search-box {
+                max-width: 100%;
+                width: 100%;
+            }
+        }
+
+        .search-box svg {
+            position: absolute;
+            left: 11px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 16px;
+            height: 16px;
+            color: var(--text-muted);
+            pointer-events: none;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 8px 12px 8px 34px;
+            border: 1.5px solid var(--border-subtle);
+            border-radius: 9px;
+            font-size: 16px; /* Previne auto-zoom no iOS */
+            outline: none;
+            background: #F9FAFB;
+            color: var(--text-main);
+            transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .search-input:focus {
+            border-color: var(--bordo);
+            background: #FFFFFF;
+            box-shadow: 0 0 0 3px var(--bordo-ring);
+        }
+
+        /* =========================================================
+           TABELAS RESPONSIVAS (VIRAM CARDS NO MOBILE)
+           ========================================================= */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 0.85rem;
+        }
+
+        .data-table th {
+            background: #F9FAFB;
+            color: var(--text-muted);
+            font-size: 0.72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            padding: 11px 10px;
+            border-bottom: 1.5px solid var(--border-subtle);
+        }
+
+        .data-table td {
+            padding: 11px 10px;
+            border-bottom: 1px solid #F3F4F6;
+            vertical-align: middle;
+        }
+
+        .data-table tbody tr:hover {
+            background-color: #FAFAFA;
+        }
+
+        .mini-progress {
+            width: 68px;
+            height: 6px;
+            background: #FEE2E2;
+            border-radius: 99px;
+            overflow: hidden;
+            display: inline-block;
+            vertical-align: middle;
+            margin-right: 6px;
+        }
+
+        .mini-progress-fill {
+            height: 100%;
+            background: var(--verde-forte);
+            border-radius: 99px;
+        }
+
+        /* Transformação automática das tabelas em Cards limpos no celular */
+        @media (max-width: 640px) {
+            .responsive-table thead {
+                display: none;
+            }
+
+            .responsive-table,
+            .responsive-table tbody,
+            .responsive-table tr,
+            .responsive-table td {
+                display: block;
+                width: 100%;
+            }
+
+            .responsive-table tr {
+                border: 1px solid var(--border-subtle);
+                border-radius: 10px;
+                padding: 10px 12px;
+                margin-bottom: 8px;
+                background: #FFFFFF;
+            }
+
+            .responsive-table tr:last-child {
+                margin-bottom: 0;
+            }
+
+            .responsive-table td {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 5px 0;
+                border-bottom: 1px dashed #F3F4F6;
+                text-align: right;
+            }
+
+            .responsive-table td:last-child {
+                border-bottom: none;
+                padding-bottom: 0;
+            }
+
+            .responsive-table td:first-child {
+                padding-top: 0;
+                padding-bottom: 8px;
+                margin-bottom: 4px;
+                border-bottom: 1px solid #F3F4F6;
+                text-align: left;
+                font-size: 0.92rem;
+            }
+
+            .responsive-table td::before {
+                content: attr(data-label);
+                font-size: 0.74rem;
+                font-weight: 600;
+                color: var(--text-muted);
+                text-transform: uppercase;
+            }
+
+            .responsive-table td:first-child::before {
+                display: none;
+            }
+        }
+
+        /* =========================================================
+           CARDS DO HISTÓRICO DE INSPEÇÕES
+           ========================================================= */
+        .history-list {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 10px;
+        }
+
+        @media (min-width: 820px) {
+            .history-list {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        .history-item {
+            border: 1px solid var(--border-subtle);
+            border-left: 4px solid var(--verde-forte);
+            border-radius: 11px;
+            padding: 13px 14px;
+            background: #FFFFFF;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            gap: 8px;
+        }
+
+        .history-item.has-issues {
+            border-left-color: var(--vermelho);
+        }
+
+        .history-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 8px;
+        }
+
+        .history-leito {
+            font-size: 0.96rem;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+
+        .history-meta {
+            font-size: 0.78rem;
+            color: var(--text-muted);
+            line-height: 1.45;
+            margin-top: 3px;
+        }
+
+        .history-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+        }
+
+        .history-obs {
+            padding: 8px 10px;
+            background: #FEF2F2;
+            border: 1px solid #FECACA;
+            border-radius: 7px;
+            font-size: 0.78rem;
+            color: #991B1B;
+            line-height: 1.35;
+        }
+
+        /* Skeleton Loading durante sincronização */
+        .is-loading .kpi-value,
+        .is-loading .kpi-footer {
+            color: transparent !important;
+            background: linear-gradient(90deg, #F3F4F6 25%, #E5E7EB 50%, #F3F4F6 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.2s infinite;
+            border-radius: 6px;
+        }
+
+        @keyframes shimmer {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Cabeçalho Institucional -->
+    <header class="app-header">
+        <div class="header-inner">
+            <div class="brand-info">
+                <div class="brand-logo-box">
+                    <img src="https://lh3.googleusercontent.com/d/1kGZL2la6BSI1GOK6uVw-jf7HDtU1LgAd" alt="Hospital Pio XII">
+                </div>
+                <div class="header-titles">
+                    <h1>Governança e Higienização</h1>
+                    <div class="status-pill">
+                        <span class="status-dot syncing" id="statusDot"></span>
+                        <span id="statusAtualizacao">Sincronizando dados...</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="header-actions">
+                <button class="btn-action" id="btnAtualizar" onclick="carregarDados()" title="Sincronizar planilha">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="23 4 23 10 17 10"></polyline>
+                        <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+                    </svg>
+                    <span class="hide-xs">Atualizar</span>
+                </button>
+                <button class="btn-action btn-pdf" id="btnExportarPDF" onclick="exportarPDF()" disabled title="Baixar relatório em PDF">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                        <polyline points="14 2 14 8 20 8"></polyline>
+                        <line x1="12" y1="18" x2="12" y2="12"></line>
+                        <polyline points="9 15 12 18 15 15"></polyline>
+                    </svg>
+                    <span>Exportar PDF</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Barra de Navegação Responsiva (Topo no Desktop / Rodapé Fixo no Mobile) -->
+    <div class="tabs-wrapper">
+        <nav class="tabs-nav" role="tablist">
+            <button class="tab-btn active" onclick="trocarAba('tab-geral', this)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="3" width="7" height="7"></rect>
+                    <rect x="14" y="3" width="7" height="7"></rect>
+                    <rect x="14" y="14" width="7" height="7"></rect>
+                    <rect x="3" y="14" width="7" height="7"></rect>
+                </svg>
+                <span>Visão Geral</span>
+            </button>
+            <button class="tab-btn" onclick="trocarAba('tab-itens', this)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M2 4v16"></path>
+                    <path d="M2 8h18a2 2 0 0 1 2 2v10"></path>
+                    <path d="M2 17h20"></path>
+                    <path d="M6 8v9"></path>
+                </svg>
+                <span>Ambientes</span>
+            </button>
+            <button class="tab-btn" onclick="trocarAba('tab-equipe', this)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="9" cy="7" r="4"></circle>
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                </svg>
+                <span>Equipe</span>
+            </button>
+            <button class="tab-btn" onclick="trocarAba('tab-historico', this)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                    <line x1="16" y1="13" x2="8" y2="13"></line>
+                    <line x1="16" y1="17" x2="8" y2="17"></line>
+                </svg>
+                <span>Histórico</span>
+            </button>
+        </nav>
+    </div>
+
+    <main class="main-container is-loading" id="dashboardContainer">
+
+        <!-- =========================================================
+             ABA 1: VISÃO GERAL
+             ========================================================= -->
+        <section id="tab-geral" class="tab-panel active">
+            <div class="kpi-grid">
+                <div class="kpi-card hero-kpi">
+                    <div class="kpi-header">
+                        <span class="kpi-label">Índice de Conformidade</span>
+                        <span class="badge badge-yellow" id="badgeMeta">Meta: 90%</span>
+                    </div>
+                    <div class="kpi-value num" id="kpiTaxa">--%</div>
+                    <div class="meta-bar-bg">
+                        <div class="meta-bar-fill" id="barraMeta" style="width: 0%;"></div>
+                    </div>
+                    <div class="kpi-footer">
+                        <span id="textoStatusMeta">Calculando meta...</span>
+                    </div>
+                </div>
+
+                <div class="kpi-card">
+                    <div class="kpi-header">
+                        <span class="kpi-label">Inspeções</span>
+                        <div class="kpi-icon-box" style="background: var(--bordo-claro); color: var(--bordo);">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="9 11 12 14 22 4"></polyline>
+                                <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="kpi-value num" style="color: var(--bordo);" id="kpiInspecoes">0</div>
+                    <div class="kpi-footer">
+                        <span id="kpiMediaFalhas">Média: 0 falhas/insp.</span>
+                    </div>
+                </div>
+
+                <div class="kpi-card">
+                    <div class="kpi-header">
+                        <span class="kpi-label">Conformes</span>
+                        <div class="kpi-icon-box" style="background: var(--verde-bg); color: var(--verde-forte);">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                                <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="kpi-value num" style="color: var(--verde-forte);" id="kpiConformes">0</div>
+                    <div class="kpi-footer">
+                        <span id="kpiNA">0 itens N/A</span>
+                    </div>
+                </div>
+
+                <div class="kpi-card alert-kpi">
+                    <div class="kpi-header">
+                        <span class="kpi-label">Não Conformes</span>
+                        <span class="badge badge-red num" id="kpiPercFalha">0%</span>
+                    </div>
+                    <div class="kpi-value num" style="color: var(--vermelho);" id="kpiNaoConformes">0</div>
+                    <div class="kpi-footer">
+                        <span id="kpiComparativoAmb">Quarto: --% • Banheiro: --%</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="charts-grid">
+                <div class="card-box">
+                    <div class="card-header">
+                        <div>
+                            <div class="card-title">Distribuição das Avaliações</div>
+                            <div class="card-subtitle">Proporção entre Conformes, Falhas e N/A</div>
+                        </div>
+                    </div>
+                    <div class="doughnut-wrapper">
+                        <canvas id="chartDistribuicao"></canvas>
+                        <div class="doughnut-center">
+                            <strong class="num" id="doughnutPercent">--%</strong>
+                            <span>Aprovação</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card-box">
+                    <div class="card-header">
+                        <div>
+                            <div class="card-title">Conformidade por Ambiente e Tipo</div>
+                            <div class="card-subtitle">Quarto vs. Banheiro e Leito vs. Quarto</div>
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="chartAmbientes"></canvas>
+                    </div>
+                </div>
+
+                <div class="card-box span-all">
+                    <div class="card-header">
+                        <div>
+                            <div class="card-title">Evolução do Índice de Conformidade (%)</div>
+                            <div class="card-subtitle">Série histórica recente comparada à meta institucional de 90%</div>
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="chartEvolucao"></canvas>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- =========================================================
+             ABA 2: AMBIENTES (QUARTO & BANHEIRO)
+             ========================================================= -->
+        <section id="tab-itens" class="tab-panel">
+            <div class="card-box">
+                <div class="card-header">
+                    <div>
+                        <div class="card-title">Top 10 Itens com Mais Não Conformidades</div>
+                        <div class="card-subtitle">Pontos críticos que exigem atenção imediata da higienização</div>
+                    </div>
+                </div>
+                <div class="chart-container tall">
+                    <canvas id="chartTopItens"></canvas>
+                </div>
+            </div>
+
+            <div class="card-box">
+                <div class="card-header">
+                    <div>
+                        <div class="card-title">Detalhamento Completo por Item (32 Itens)</div>
+                        <div class="card-subtitle">Filtre por ambiente ou pesquise um item específico</div>
+                    </div>
+                </div>
+
+                <div class="controls-bar">
+                    <div class="pill-group">
+                        <button class="pill-filter active" onclick="filtrarAmbiente('Todos', this)">Todos (32)</button>
+                        <button class="pill-filter" onclick="filtrarAmbiente('Quarto', this)">Quarto (25)</button>
+                        <button class="pill-filter" onclick="filtrarAmbiente('Banheiro', this)">Banheiro (7)</button>
+                    </div>
+                    <div class="search-box">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="11" cy="11" r="8"></circle>
+                            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                        </svg>
+                        <input type="text" id="buscaItem" class="search-input" placeholder="Buscar item..." oninput="renderizarTabelaItens()">
+                    </div>
+                </div>
+
+                <table class="data-table responsive-table">
+                    <thead>
+                        <tr>
+                            <th>Item Inspecionado</th>
+                            <th>Ambiente</th>
+                            <th>Conforme</th>
+                            <th>Não Conf.</th>
+                            <th>N/A</th>
+                            <th>Taxa de Aprovação</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbodyItens"></tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- =========================================================
+             ABA 3: EQUIPE & AUDITORIA
+             ========================================================= -->
+        <section id="tab-equipe" class="tab-panel">
+            <div class="card-box">
+                <div class="card-header">
+                    <div>
+                        <div class="card-title">Inspeções por Responsável pelo Checklist</div>
+                        <div class="card-subtitle">Volume de auditorias realizadas e taxa média de conformidade</div>
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="chartAuditores"></canvas>
+                </div>
+            </div>
+
+            <div class="charts-grid">
+                <div class="card-box">
+                    <div class="card-header">
+                        <div>
+                            <div class="card-title">Auditoras (Checklist)</div>
+                            <div class="card-subtitle">Responsáveis pela verificação</div>
+                        </div>
+                    </div>
+                    <table class="data-table responsive-table">
+                        <thead>
+                            <tr>
+                                <th>Auditora</th>
+                                <th>Inspeções</th>
+                                <th>Falhas</th>
+                                <th>Conformidade</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbodyAuditores"></tbody>
+                    </table>
+                </div>
+
+                <div class="card-box">
+                    <div class="card-header">
+                        <div>
+                            <div class="card-title">Colaboradores da Limpeza</div>
+                            <div class="card-subtitle">Desempenho por executor da higienização</div>
+                        </div>
+                    </div>
+                    <table class="data-table responsive-table">
+                        <thead>
+                            <tr>
+                                <th>Colaborador</th>
+                                <th>Leitos</th>
+                                <th>Falhas</th>
+                                <th>Aprovação</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbodyExecutores"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- =========================================================
+             ABA 4: HISTÓRICO & OCORRÊNCIAS
+             ========================================================= -->
+        <section id="tab-historico" class="tab-panel">
+            <div class="card-box">
+                <div class="card-header">
+                    <div>
+                        <div class="card-title">Registro de Inspeções Realizadas</div>
+                        <div class="card-subtitle">Consulte leitos, apontamentos e observações</div>
+                    </div>
+                </div>
+
+                <div class="controls-bar">
+                    <div class="pill-group">
+                        <button class="pill-filter active" onclick="filtrarHistorico('todos', this)">Todas</button>
+                        <button class="pill-filter" onclick="filtrarHistorico('falhas', this)">Com Falhas</button>
+                        <button class="pill-filter" onclick="filtrarHistorico('perfeitas', this)">100% Conformes</button>
+                    </div>
+                    <div class="search-box">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="11" cy="11" r="8"></circle>
+                            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                        </svg>
+                        <input type="text" id="buscaHistorico" class="search-input" placeholder="Buscar leito ou equipe..." oninput="renderizarHistorico()">
+                    </div>
+                </div>
+
+                <div class="history-list" id="listaHistorico"></div>
+            </div>
+        </section>
+
+    </main>
+
+    <script>
+        let dadosGlobais = null;
+        let filtroAmbienteAtual = 'Todos';
+        let filtroHistoricoAtual = 'todos';
+        const chartsInstancias = {};
+
+        // Configuração global de estética do Chart.js
+        Chart.defaults.font.family = "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+        Chart.defaults.color = '#6B7280';
+
+        const tooltipPadrao = {
+            backgroundColor: '#111827',
+            titleColor: '#F9FAFB',
+            bodyColor: '#E5E7EB',
+            padding: 10,
+            cornerRadius: 8,
+            displayColors: true,
+            boxPadding: 4
+        };
+
+        function trocarAba(tabId, botao) {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+
+            botao.classList.add('active');
+            document.getElementById(tabId).classList.add('active');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function carregarDados() {
+            const container = document.getElementById('dashboardContainer');
+            const status = document.getElementById('statusAtualizacao');
+            const dot = document.getElementById('statusDot');
+            const btnPdf = document.getElementById('btnExportarPDF');
+
+            container.classList.add('is-loading');
+            dot.classList.add('syncing');
+            btnPdf.disabled = true;
+            status.textContent = 'Sincronizando planilha...';
+
+            google.script.run
+                .withSuccessHandler(data => {
+                    dadosGlobais = data;
+                    renderizarTudo(data);
+                    container.classList.remove('is-loading');
+                    dot.classList.remove('syncing');
+                    btnPdf.disabled = false;
+                })
+                .withFailureHandler(err => {
+                    status.textContent = 'Erro ao sincronizar: ' + err.message;
+                    container.classList.remove('is-loading');
+                    dot.classList.remove('syncing');
+                })
+                .obterDadosDashboard();
+        }
+
+        function renderizarTudo(data) {
+            document.getElementById('statusAtualizacao').textContent = `Atualizado • ${data.atualizadoEm}`;
+
+            const taxa = data.kpis.taxaConformidade;
+            const kpiTaxaEl = document.getElementById('kpiTaxa');
+            kpiTaxaEl.textContent = `${taxa.toFixed(1)}%`;
+            kpiTaxaEl.style.color = taxa >= 90 ? 'var(--verde-forte)' : (taxa >= 75 ? 'var(--amarelo)' : 'var(--vermelho)');
+            document.getElementById('doughnutPercent').textContent = `${taxa.toFixed(1)}%`;
+
+            const barraMeta = document.getElementById('barraMeta');
+            barraMeta.style.width = `${Math.min(taxa, 100)}%`;
+            barraMeta.style.backgroundColor = taxa >= 90 ? 'var(--verde-forte)' : (taxa >= 75 ? '#D97706' : 'var(--vermelho)');
+
+            const diffMeta = (taxa - 90).toFixed(1);
+            document.getElementById('textoStatusMeta').textContent = taxa >= 90
+                ? `✔ Dentro da meta hospitalar (+${diffMeta}%)`
+                : `⚠ ${Math.abs(diffMeta)}% abaixo da meta de 90%`;
+
+            document.getElementById('kpiInspecoes').textContent = data.kpis.totalInspecoes;
+            document.getElementById('kpiMediaFalhas').textContent = `Média: ${data.kpis.mediaFalhasPorInspecao} falhas/insp.`;
+
+            document.getElementById('kpiConformes').textContent = data.kpis.conformes;
+            document.getElementById('kpiNA').textContent = `${data.kpis.naoSeAplica} itens N/A`;
+
+            const totalGeral = data.kpis.conformes + data.kpis.naoConformes;
+            const percFalha = totalGeral > 0 ? ((data.kpis.naoConformes / totalGeral) * 100).toFixed(1) : 0;
+            document.getElementById('kpiNaoConformes').textContent = data.kpis.naoConformes;
+            document.getElementById('kpiPercFalha').textContent = `${percFalha}% dos válidos`;
+            document.getElementById('kpiComparativoAmb').textContent =
+                `Quarto: ${data.ambientes.quarto.taxa}% • Banheiro: ${data.ambientes.banheiro.taxa}%`;
+
+            renderizarGraficos(data);
+            renderizarTabelaItens();
+            renderizarEquipe(data);
+            renderizarHistorico();
+        }
+
+        function destruirGrafico(id) {
+            if (chartsInstancias[id]) {
+                chartsInstancias[id].destroy();
+            }
+        }
+
+        function renderizarGraficos(data) {
+            // 1. Rosca com indicador central
+            destruirGrafico('distribuicao');
+            chartsInstancias['distribuicao'] = new Chart(document.getElementById('chartDistribuicao'), {
+                type: 'doughnut',
+                data: {
+                    labels: ['Limpeza Conforme', 'Não Conforme', 'Não se Aplica'],
+                    datasets: [{
+                        data: [data.kpis.conformes, data.kpis.naoConformes, data.kpis.naoSeAplica],
+                        backgroundColor: ['#15803D', '#B91C1C', '#9CA3AF'],
+                        borderWidth: 3,
+                        borderColor: '#FFFFFF',
+                        hoverOffset: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: false,
+                    cutout: '68%',
+                    plugins: {
+                        tooltip: tooltipPadrao,
+                        legend: {
+                            position: 'bottom',
+                            labels: { usePointStyle: true, pointStyle: 'circle', padding: 14, font: { size: 12, weight: '600' } }
+                        }
+                    }
+                }
+            });
+
+            // 2. Comparativo Quarto vs Banheiro & Tipos
+            destruirGrafico('ambientes');
+            const labelsAmb = ['Quarto (25)', 'Banheiro (7)', ...data.tiposLimpeza.map(t => t.tipo)];
+            const valoresAmb = [
+                data.ambientes.quarto.taxa,
+                data.ambientes.banheiro.taxa,
+                ...data.tiposLimpeza.map(t => t.taxa)
+            ];
+
+            chartsInstancias['ambientes'] = new Chart(document.getElementById('chartAmbientes'), {
+                type: 'bar',
+                data: {
+                    labels: labelsAmb,
+                    datasets: [{
+                        label: 'Conformidade (%)',
+                        data: valoresAmb,
+                        backgroundColor: ['#9A2B2E', '#DC2626', '#1D4ED8', '#15803D'],
+                        borderRadius: 7,
+                        maxBarThickness: 44
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: false,
+                    scales: {
+                        x: { grid: { display: false } },
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            border: { display: false },
+                            grid: { color: '#F3F4F6' },
+                            ticks: { callback: v => v + '%' }
+                        }
+                    },
+                    plugins: {
+                        tooltip: tooltipPadrao,
+                        legend: { display: false }
+                    }
+                }
+            });
+
+            // 3. Evolução Temporal
+            destruirGrafico('evolucao');
+            chartsInstancias['evolucao'] = new Chart(document.getElementById('chartEvolucao'), {
+                type: 'line',
+                data: {
+                    labels: data.evolucaoDiaria.map(d => d.data),
+                    datasets: [
+                        {
+                            label: 'Conformidade (%)',
+                            data: data.evolucaoDiaria.map(d => d.taxa),
+                            borderColor: '#9A2B2E',
+                            backgroundColor: 'rgba(154, 43, 46, 0.10)',
+                            fill: true,
+                            tension: 0.35,
+                            borderWidth: 2.5,
+                            pointRadius: 4,
+                            pointHoverRadius: 6,
+                            pointBackgroundColor: '#9A2B2E',
+                            pointBorderColor: '#FFFFFF',
+                            pointBorderWidth: 2
+                        },
+                        {
+                            label: 'Meta Hospitalar (90%)',
+                            data: data.evolucaoDiaria.map(() => 90),
+                            borderColor: '#15803D',
+                            borderDash: [6, 5],
+                            pointRadius: 0,
+                            borderWidth: 2
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: false,
+                    scales: {
+                        x: { grid: { display: false } },
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            border: { display: false },
+                            grid: { color: '#F3F4F6' },
+                            ticks: { callback: v => v + '%' }
+                        }
+                    },
+                    plugins: {
+                        tooltip: tooltipPadrao,
+                        legend: {
+                            position: 'bottom',
+                            labels: { usePointStyle: true, pointStyle: 'line', padding: 14, font: { size: 12, weight: '600' } }
+                        }
+                    }
+                }
+            });
+
+            // 4. Top 10 Itens Críticos
+            destruirGrafico('topItens');
+            const top10 = [...data.itensDetalhados]
+                .filter(i => i.nconf > 0)
+                .sort((a, b) => b.nconf - a.nconf)
+                .slice(0, 10);
+
+            chartsInstancias['topItens'] = new Chart(document.getElementById('chartTopItens'), {
+                type: 'bar',
+                data: {
+                    labels: top10.map(i => i.nome),
+                    datasets: [{
+                        label: 'Não Conformidades',
+                        data: top10.map(i => i.nconf),
+                        backgroundColor: '#9A2B2E',
+                        borderRadius: 6,
+                        maxBarThickness: 22
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: false,
+                    scales: {
+                        x: { beginAtZero: true, grid: { color: '#F3F4F6' }, ticks: { precision: 0 } },
+                        y: { grid: { display: false } }
+                    },
+                    plugins: {
+                        tooltip: tooltipPadrao,
+                        legend: { display: false }
+                    }
+                }
+            });
+
+            // 5. Desempenho Auditoras
+            destruirGrafico('auditores');
+            chartsInstancias['auditores'] = new Chart(document.getElementById('chartAuditores'), {
+                type: 'bar',
+                data: {
+                    labels: data.auditores.map(a => a.nome),
+                    datasets: [
+                        {
+                            label: 'Inspeções Realizadas',
+                            data: data.auditores.map(a => a.inspecoes),
+                            backgroundColor: '#9A2B2E',
+                            borderRadius: 6,
+                            maxBarThickness: 32,
+                            yAxisID: 'y'
+                        },
+                        {
+                            label: 'Conformidade (%)',
+                            data: data.auditores.map(a => a.taxaConformidade),
+                            backgroundColor: '#15803D',
+                            borderRadius: 6,
+                            maxBarThickness: 32,
+                            yAxisID: 'y1'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: false,
+                    scales: {
+                        x: { grid: { display: false } },
+                        y: { type: 'linear', position: 'left', beginAtZero: true, ticks: { precision: 0 }, grid: { color: '#F3F4F6' } },
+                        y1: { type: 'linear', position: 'right', beginAtZero: true, max: 100, grid: { drawOnChartArea: false }, ticks: { callback: v => v + '%' } }
+                    },
+                    plugins: {
+                        tooltip: tooltipPadrao,
+                        legend: {
+                            position: 'bottom',
+                            labels: { usePointStyle: true, pointStyle: 'circle', padding: 14, font: { size: 12, weight: '600' } }
+                        }
+                    }
+                }
+            });
+        }
+
+        function filtrarAmbiente(ambiente, botao) {
+            filtroAmbienteAtual = ambiente;
+            botao.parentElement.querySelectorAll('.pill-filter').forEach(b => b.classList.remove('active'));
+            botao.classList.add('active');
+            renderizarTabelaItens();
+        }
+
+        function renderizarTabelaItens() {
+            if (!dadosGlobais) return;
+            const termo = document.getElementById('buscaItem').value.toLowerCase().trim();
+            const tbody = document.getElementById('tbodyItens');
+
+            const filtrados = dadosGlobais.itensDetalhados.filter(item => {
+                const matchAmb = filtroAmbienteAtual === 'Todos' || item.ambiente === filtroAmbienteAtual;
+                const matchTexto = item.nome.toLowerCase().includes(termo);
+                return matchAmb && matchTexto;
+            });
+
+            tbody.innerHTML = filtrados.map(item => `
+                <tr>
+                    <td><strong>${item.nome}</strong></td>
+                    <td data-label="Ambiente"><span class="badge ${item.ambiente === 'Quarto' ? 'badge-blue' : 'badge-gray'}">${item.ambiente}</span></td>
+                    <td data-label="Conforme" class="num" style="color: var(--verde-forte); font-weight: 600;">${item.conf}</td>
+                    <td data-label="Não Conf." class="num" style="color: ${item.nconf > 0 ? 'var(--vermelho)' : 'var(--text-muted)'}; font-weight: 700;">${item.nconf}</td>
+                    <td data-label="N/A" class="num" style="color: var(--text-muted);">${item.na}</td>
+                    <td data-label="Aprovação" class="num">
+                        <div class="mini-progress">
+                            <div class="mini-progress-fill" style="width: ${item.taxaConformidade}%;"></div>
+                        </div>
+                        <strong>${item.taxaConformidade}%</strong>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function renderizarEquipe(data) {
+            document.getElementById('tbodyAuditores').innerHTML = data.auditores.map(a => `
+                <tr>
+                    <td><strong>${a.nome}</strong></td>
+                    <td data-label="Inspeções" class="num">${a.inspecoes}</td>
+                    <td data-label="Falhas" class="num"><span class="badge badge-red">${a.nconf}</span></td>
+                    <td data-label="Conformidade" class="num"><span class="badge ${a.taxaConformidade >= 90 ? 'badge-green' : 'badge-yellow'}">${a.taxaConformidade}%</span></td>
+                </tr>
+            `).join('');
+
+            document.getElementById('tbodyExecutores').innerHTML = data.executoresLimpeza.map(e => `
+                <tr>
+                    <td><strong>${e.nome}</strong></td>
+                    <td data-label="Leitos" class="num">${e.inspecoes}</td>
+                    <td data-label="Falhas" class="num"><span class="badge badge-red">${e.nconf}</span></td>
+                    <td data-label="Aprovação" class="num"><span class="badge ${e.taxaConformidade >= 90 ? 'badge-green' : 'badge-yellow'}">${e.taxaConformidade}%</span></td>
+                </tr>
+            `).join('');
+        }
+
+        function filtrarHistorico(tipo, botao) {
+            filtroHistoricoAtual = tipo;
+            botao.parentElement.querySelectorAll('.pill-filter').forEach(b => b.classList.remove('active'));
+            botao.classList.add('active');
+            renderizarHistorico();
+        }
+
+        function renderizarHistorico() {
+            if (!dadosGlobais) return;
+            const termo = document.getElementById('buscaHistorico').value.toLowerCase().trim();
+            const lista = document.getElementById('listaHistorico');
+
+            const filtrados = dadosGlobais.historico.filter(h => {
+                const matchTipo = filtroHistoricoAtual === 'todos'
+                    || (filtroHistoricoAtual === 'falhas' && h.nconf > 0)
+                    || (filtroHistoricoAtual === 'perfeitas' && h.nconf === 0);
+
+                const matchTexto = h.leito.toLowerCase().includes(termo)
+                    || h.executor.toLowerCase().includes(termo)
+                    || h.auditor.toLowerCase().includes(termo);
+
+                return matchTipo && matchTexto;
+            });
+
+            if (!filtrados.length) {
+                lista.innerHTML = '<div style="grid-column: 1/-1; text-align:center; padding: 24px; color: var(--text-muted);">Nenhuma inspeção encontrada para esse filtro.</div>';
+                return;
+            }
+
+            lista.innerHTML = filtrados.map(h => `
+                <div class="history-item ${h.nconf > 0 ? 'has-issues' : ''}">
+                    <div class="history-top">
+                        <div>
+                            <div class="history-leito">${h.leito} • <span style="font-weight: 500; font-size: 0.84rem; color: var(--text-muted);">${h.tipoLimpeza}</span></div>
+                            <div class="history-meta">
+                                ${h.data} às ${h.horario} &nbsp;•&nbsp; Limpeza: <strong>${h.executor}</strong> &nbsp;•&nbsp; Auditoria: <strong>${h.auditor}</strong>
+                            </div>
+                        </div>
+                        <span class="badge num ${h.nconf === 0 ? 'badge-green' : 'badge-red'}">
+                            ${h.taxaAprovacao}% (${h.conf}✓ / ${h.nconf}✕)
+                        </span>
+                    </div>
+
+                    ${h.falhas.length ? `
+                        <div class="history-tags">
+                            ${h.falhas.map(f => `<span class="badge badge-red">✕ ${f}</span>`).join('')}
+                        </div>
+                    ` : ''}
+
+                    ${h.observacao ? `
+                        <div class="history-obs"><strong>Observação:</strong> ${h.observacao}</div>
+                    ` : ''}
+                </div>
+            `).join('');
+        }
+
+        // =========================================================
+        // EXPORTAÇÃO DE RELATÓRIO EXECUTIVO COMPLETO EM PDF (A4)
+        // =========================================================
+        function exportarPDF() {
+            if (!dadosGlobais) return;
+
+            const btnPdf = document.getElementById('btnExportarPDF');
+            const textoOriginal = btnPdf.innerHTML;
+            btnPdf.disabled = true;
+            btnPdf.innerHTML = '<span>Gerando PDF...</span>';
+
+            setTimeout(() => {
+                try {
+                    const { jsPDF } = window.jspdf;
+                    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+
+                    const corBordo = [154, 43, 46];
+                    const corCinzaEscuro = [31, 41, 55];
+                    const corMuted = [107, 114, 128];
+                    const corVermelho = [185, 28, 28];
+
+                    doc.setFillColor(...corBordo);
+                    doc.rect(0, 0, 210, 28, 'F');
+
+                    doc.setTextColor(255, 255, 255);
+                    doc.setFont('helvetica', 'bold');
+                    doc.setFontSize(14);
+                    doc.text('HOSPITAL PIO XII • GOVERNANÇA E HIGIENIZAÇÃO', 14, 12);
+
+                    doc.setFont('helvetica', 'normal');
+                    doc.setFontSize(9.5);
+                    doc.text('Relatório Executivo de Controle de Limpeza e Inspeção Hospitalar', 14, 18.5);
+                    doc.text(`Emitido em: ${dadosGlobais.atualizadoEm}`, 14, 24);
+
+                    let y = 36;
+                    doc.setTextColor(...corBordo);
+                    doc.setFont('helvetica', 'bold');
+                    doc.setFontSize(11);
+                    doc.text('1. INDICADORES GERAIS DE DESEMPENHO', 14, y);
+                    y += 4;
+
+                    const k = dadosGlobais.kpis;
+                    const amb = dadosGlobais.ambientes;
+                    const statusMeta = k.taxaConformidade >= 90 ? 'Dentro da Meta (>= 90%)' : 'Abaixo da Meta (90%)';
+
+                    doc.autoTable({
+                        startY: y,
+                        head: [['Índice Conformidade', 'Status Meta', 'Inspeções', 'Conformes', 'Não Conformes', 'N/A', 'Quarto / Banheiro']],
+                        body: [[
+                            `${k.taxaConformidade.toFixed(1)}%`,
+                            statusMeta,
+                            String(k.totalInspecoes),
+                            String(k.conformes),
+                            String(k.naoConformes),
+                            String(k.naoSeAplica),
+                            `${amb.quarto.taxa}% / ${amb.banheiro.taxa}%`
+                        ]],
+                        theme: 'grid',
+                        headStyles: { fillColor: corBordo, textColor: 255, fontSize: 8, halign: 'center' },
+                        bodyStyles: { fontSize: 8.5, halign: 'center', fontStyle: 'bold', textColor: corCinzaEscuro },
+                        margin: { left: 14, right: 14 }
+                    });
+
+                    y = doc.lastAutoTable.finalY + 8;
+
+                    const canvasDist = document.getElementById('chartDistribuicao');
+                    const canvasAmb = document.getElementById('chartAmbientes');
+
+                    if (canvasDist && canvasAmb) {
+                        doc.setTextColor(...corBordo);
+                        doc.setFont('helvetica', 'bold');
+                        doc.setFontSize(11);
+                        doc.text('2. ANÁLISE GRÁFICA COMPARATIVA', 14, y);
+                        y += 3;
+
+                        const imgDist = canvasDist.toDataURL('image/png', 1.0);
+                        const imgAmb = canvasAmb.toDataURL('image/png', 1.0);
+
+                        doc.setDrawColor(229, 220, 225);
+                        doc.rect(14, y, 88, 52);
+                        doc.rect(108, y, 88, 52);
+
+                        doc.addImage(imgDist, 'PNG', 16, y + 2, 84, 48);
+                        doc.addImage(imgAmb, 'PNG', 110, y + 2, 84, 48);
+                        y += 59;
+                    }
+
+                    doc.setTextColor(...corBordo);
+                    doc.setFont('helvetica', 'bold');
+                    doc.setFontSize(11);
+                    doc.text('3. DESEMPENHO POR AUDITORA DO CHECKLIST', 14, y);
+                    y += 3;
+
+                    doc.autoTable({
+                        startY: y,
+                        head: [['Responsável Checklist', 'Inspeções', 'Itens Conformes', 'Não Conformes', 'Taxa Conformidade']],
+                        body: dadosGlobais.auditores.map(a => [
+                            a.nome,
+                            String(a.inspecoes),
+                            String(a.conf),
+                            String(a.nconf),
+                            `${a.taxaConformidade}%`
+                        ]),
+                        theme: 'striped',
+                        headStyles: { fillColor: corBordo, textColor: 255, fontSize: 8.5 },
+                        bodyStyles: { fontSize: 8.5, textColor: corCinzaEscuro },
+                        columnStyles: {
+                            1: { halign: 'center' },
+                            2: { halign: 'center' },
+                            3: { halign: 'center' },
+                            4: { halign: 'center', fontStyle: 'bold' }
+                        },
+                        margin: { left: 14, right: 14 }
+                    });
+
+                    y = doc.lastAutoTable.finalY + 8;
+
+                    doc.setTextColor(...corBordo);
+                    doc.setFont('helvetica', 'bold');
+                    doc.setFontSize(11);
+                    doc.text('4. DESEMPENHO POR COLABORADOR DA LIMPEZA', 14, y);
+                    y += 3;
+
+                    doc.autoTable({
+                        startY: y,
+                        head: [['Colaborador Limpeza', 'Leitos Limpos', 'Itens Conformes', 'Não Conformes', 'Taxa Aprovação']],
+                        body: dadosGlobais.executoresLimpeza.map(e => [
+                            e.nome,
+                            String(e.inspecoes),
+                            String(e.conf),
+                            String(e.nconf),
+                            `${e.taxaConformidade}%`
+                        ]),
+                        theme: 'striped',
+                        headStyles: { fillColor: [55, 65, 81], textColor: 255, fontSize: 8.5 },
+                        bodyStyles: { fontSize: 8.5, textColor: corCinzaEscuro },
+                        columnStyles: {
+                            1: { halign: 'center' },
+                            2: { halign: 'center' },
+                            3: { halign: 'center' },
+                            4: { halign: 'center', fontStyle: 'bold' }
+                        },
+                        margin: { left: 14, right: 14 }
+                    });
+
+                    doc.addPage();
+                    doc.setTextColor(...corBordo);
+                    doc.setFont('helvetica', 'bold');
+                    doc.setFontSize(11);
+                    doc.text('5. DETALHAMENTO POR ITEM INSPECIONADO (32 ITENS)', 14, 16);
+
+                    const itensOrdenados = [...dadosGlobais.itensDetalhados].sort((a, b) => b.nconf - a.nconf);
+
+                    doc.autoTable({
+                        startY: 20,
+                        head: [['Item Inspecionado', 'Ambiente', 'Conformes', 'Não Conformes', 'N/A', 'Taxa Aprovação']],
+                        body: itensOrdenados.map(i => [
+                            i.nome,
+                            i.ambiente,
+                            String(i.conf),
+                            String(i.nconf),
+                            String(i.na),
+                            `${i.taxaConformidade}%`
+                        ]),
+                        theme: 'grid',
+                        headStyles: { fillColor: corBordo, textColor: 255, fontSize: 8.5 },
+                        bodyStyles: { fontSize: 8, textColor: corCinzaEscuro },
+                        columnStyles: {
+                            1: { halign: 'center' },
+                            2: { halign: 'center' },
+                            3: { halign: 'center', fontStyle: 'bold' },
+                            4: { halign: 'center' },
+                            5: { halign: 'center', fontStyle: 'bold' }
+                        },
+                        didParseCell: function (hookData) {
+                            if (hookData.section === 'body' && hookData.column.index === 3) {
+                                const val = parseInt(hookData.cell.raw, 10);
+                                if (val > 0) hookData.cell.styles.textColor = corVermelho;
+                            }
+                        },
+                        margin: { left: 14, right: 14 }
+                    });
+
+                    let yHist = doc.lastAutoTable.finalY + 10;
+                    if (yHist > 240) {
+                        doc.addPage();
+                        yHist = 16;
+                    }
+
+                    doc.setTextColor(...corBordo);
+                    doc.setFont('helvetica', 'bold');
+                    doc.setFontSize(11);
+                    doc.text('6. HISTÓRICO DE INSPEÇÕES E APONTAMENTOS', 14, yHist);
+
+                    doc.autoTable({
+                        startY: yHist + 4,
+                        head: [['Data/Hora', 'Leito', 'Tipo', 'Limpeza', 'Auditora', 'Aprov.', 'Itens Não Conformes / Obs.']],
+                        body: dadosGlobais.historico.map(h => {
+                            const detalhes = [];
+                            if (h.falhas.length) detalhes.push(`Falhas: ${h.falhas.join(', ')}`);
+                            if (h.observacao) detalhes.push(`Obs: ${h.observacao}`);
+                            return [
+                                `${h.data}\n${h.horario}`,
+                                h.leito,
+                                h.tipoLimpeza,
+                                h.executor,
+                                h.auditor,
+                                `${h.taxaAprovacao}%`,
+                                detalhes.length ? detalhes.join(' | ') : '100% Conforme'
+                            ];
+                        }),
+                        theme: 'striped',
+                        headStyles: { fillColor: corBordo, textColor: 255, fontSize: 7.5 },
+                        bodyStyles: { fontSize: 7.5, textColor: corCinzaEscuro },
+                        columnStyles: {
+                            0: { cellWidth: 20 },
+                            1: { cellWidth: 22, fontStyle: 'bold' },
+                            2: { cellWidth: 16 },
+                            3: { cellWidth: 24 },
+                            4: { cellWidth: 22 },
+                            5: { cellWidth: 14, halign: 'center', fontStyle: 'bold' }
+                        },
+                        margin: { left: 14, right: 14 }
+                    });
+
+                    const totalPaginas = doc.internal.getNumberOfPages();
+                    for (let p = 1; p <= totalPaginas; p++) {
+                        doc.setPage(p);
+                        doc.setFontSize(8);
+                        doc.setTextColor(...corMuted);
+                        doc.text(
+                            `Hospital Pio XII • Governança e Higienização — Página ${p} de ${totalPaginas}`,
+                            105,
+                            290,
+                            { align: 'center' }
+                        );
+                    }
+
+                    const dataArquivo = new Date().toISOString().slice(0, 10);
+                    doc.save(`Relatorio_Governanca_PioXII_${dataArquivo}.pdf`);
+                } catch (erro) {
+                    console.error('Erro ao gerar PDF:', erro);
+                    alert('Não foi possível gerar o PDF: ' + erro.message);
+                } finally {
+                    btnPdf.disabled = false;
+                    btnPdf.innerHTML = textoOriginal;
+                }
+            }, 120);
+        }
+
+        window.addEventListener('DOMContentLoaded', carregarDados);
+    </script>
+</body>
+</html>
